@@ -1,0 +1,37 @@
+//
+// Do any local configuration here
+//
+
+//include "/etc/bind/zones.rfc1918";
+include "/etc/bind/rndc.key";
+
+include "/etc/bind/zones.override";
+
+logging {
+    channel bind_log {
+        file "/var/log/named/named.log" versions 5 size 30m;
+        severity info;
+        print-time yes;
+        print-severity yes;
+        print-category yes;
+    };
+
+    channel query-error_log {
+		file "/var/log/named/query-error.log" versions 7 size 100M; print-category yes;
+		print-severity yes;
+		print-time yes;
+		severity info;
+	};
+
+    channel security_file {
+        file "/var/log/named/security.log" versions 3 size 5m;
+        severity dynamic;
+        print-time yes;
+    };
+
+    category default { bind_log; };
+    category queries { bind_log; };
+	category query-errors { query-error_log; };
+    category security { security_file; };
+};
+
