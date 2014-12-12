@@ -7,6 +7,7 @@
 import os, syslog
 base = [] # what we have at hostbase.txt
 host = [] # hosts that was added to checklist 
+whitelist = [] # do not block any query types for this host
 
 # create new chain and put all traffic to 53 port through it
 os.system("/sbin/iptables -N DNSAMP")
@@ -18,6 +19,11 @@ with open('./hostbase.txt', 'r') as hostbase:
 	for i in hostbase:
 		base.append(i.strip())
 
+# load whitelisted hosts
+with open('./whitelist.txt', 'r') as wl:
+	for i in wl:
+		whitelist.append(i.strip())		
+
 # looking for TXT, ANY, DNSKEY, NS, RRSIG requests in named.log
 checklist = os.popen("cat /var/log/named.log | egrep 'ANY|TXT|DNSKEY|NS|RRSIG' | grep queries").readlines()
 for i in checklist:
@@ -26,7 +32,7 @@ for i in checklist:
 	print "Working on " + i
 
 # check if this host exist in "hostbase" and if it's not - add it and ban
-	if i not in host:
+	if i not in whitelist and i not in host:
 		if i not in base:
 			print "CHECK: Not in hostbase, create a rule"
 			rule = os.popen("./generate-netfilter-u32-dns-rule.py --qname " + i + " --qtype " + qtype).read()
