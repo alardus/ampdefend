@@ -11,8 +11,9 @@ whitelist = [] # do not block any query types for this host
 
 # create new chain and put all traffic to 53 port through it
 os.system("/sbin/iptables -N DNSAMP")
-os.system("/sbin/iptables -I INPUT -p udp --dport 53 -j DNSAMP")
-os.system("/sbin/iptables -I FORWARD -p udp --dport 53 -j DNSAMP")
+l2chain = os.popen("/sbin/iptables -L INPUT | grep DNSAMP").read()
+if len(l2chain) == 0:
+	os.system("/sbin/iptables -I INPUT -p udp --dport 53 -j DNSAMP")
 
 # load list of banned hosts to 'base'
 with open('./hostbase.txt', 'r') as hostbase:
@@ -25,14 +26,16 @@ with open('./whitelist.txt', 'r') as wl:
 		whitelist.append(i.strip())		
 
 # looking for TXT, ANY, DNSKEY, NS, RRSIG requests in named.log
-checklist = os.popen("cat /var/log/named.log | egrep 'ANY|TXT|DNSKEY|NS|RRSIG' | grep queries").readlines()
+checklist = os.popen("cat /var/log/named/named.log | egrep 'ANY|TXT|DNSKEY|NS|RRSIG' | grep queries").readlines()
 for i in checklist:
 	qtype = i.split(" ")[10].strip()
 	i = i.split(" ")[8].strip()
 	print "Working on " + i
 
 # check if this host exist in "hostbase" and if it's not - add it and ban
-	if i not in whitelist and i not in host:
+	if i in whitelist:
+		print "Host whitelisted\n"
+	elif i not in host:
 		if i not in base:
 			print "CHECK: Not in hostbase, create a rule"
 			rule = os.popen("./generate-netfilter-u32-dns-rule.py --qname " + i + " --qtype " + qtype).read()
